@@ -8,7 +8,7 @@ public struct LaunchAgent: Identifiable, Hashable {
 }
 
 public enum Startup {
-    /// Agentes de inicialização do usuário (só leitura; remover = mover para a quarentena).
+    /// User startup agents (read-only listing; removing = moving to Quarantine).
     public static func list(home: URL = SafetyGuard().home) -> [LaunchAgent] {
         let dir = home.appendingPathComponent("Library/LaunchAgents")
         guard let items = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return [] }

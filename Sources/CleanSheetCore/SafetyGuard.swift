@@ -1,11 +1,11 @@
 import Foundation
 
-/// Decide se um caminho pode ser movido para a quarentena. Toda ação destrutiva passa por aqui.
+/// Decides whether a path may be moved to Quarantine. Every destructive action goes through here.
 public struct SafetyGuard {
     public enum Scope {
-        /// Item encontrado por uma regra do app.
+        /// Item found by an app rule.
         case automatic
-        /// Item de uma pasta que o próprio usuário escolheu (duplicatas, apps).
+        /// Item from a folder the user chose (duplicates, apps).
         case userSelected
     }
 
@@ -35,13 +35,13 @@ public struct SafetyGuard {
     private static let systemRoots = ["/System", "/usr", "/bin", "/sbin", "/etc", "/var", "/dev", "/Library", "/private", "/cores", "/opt", "/Volumes"]
     private static let packageExtensions: Set<String> = ["photoslibrary", "musiclibrary", "tvlibrary", "fcpbundle", "logicx", "xcodeproj", "xcworkspace"]
 
-    /// Avalia o caminho e, se for symlink (mesmo quebrado), também o destino dele.
+    /// Checks the path and, if it is a symlink (even a broken one), its target too.
     public func check(_ url: URL, scope: Scope) -> Verdict {
         let v = checkPath(url, scope: scope)
         if case .denied = v { return v }
         if let dest = try? FileManager.default.destinationOfSymbolicLink(atPath: url.path) {
             let target = URL(fileURLWithPath: dest, relativeTo: url.deletingLastPathComponent()).standardizedFileURL
-            if case .denied(let why) = checkPath(target, scope: scope) { return .denied("Symlink para área protegida: \(why)") }
+            if case .denied(let why) = checkPath(target, scope: scope) { return .denied("Symlink to a protected area: \(why)") }
         }
         return .allowed
     }
@@ -49,37 +49,37 @@ public struct SafetyGuard {
     private func checkPath(_ url: URL, scope: Scope) -> Verdict {
         let path = Self.components(url)
 
-        if path.count <= 1 { return .denied("Raiz do sistema.") }
+        if path.count <= 1 { return .denied("System root.") }
 
         for root in Self.systemRoots where Self.isInside(path, URL(fileURLWithPath: root).pathComponents) {
-            // /Applications fica fora da lista: apps instalados podem ser desinstalados pelo usuário.
-            return .denied("Pasta do sistema (\(root)).")
+            // /Applications is not in the list: installed apps may be uninstalled by the user.
+            return .denied("System folder (\(root)).")
         }
 
         let homeParts = home.pathComponents
-        if path == homeParts { return .denied("Pasta pessoal inteira.") }
-        // Nunca apagar pastas de topo do home nem a ~/Library em si (profundidade < 2).
+        if path == homeParts { return .denied("Entire home folder.") }
+        // Never touch top-level home folders nor ~/Library itself (depth < 2).
         if Self.isInside(path, homeParts) && path.count - homeParts.count < 2 {
-            return .denied("Pasta de topo do usuário.")
+            return .denied("Top-level user folder.")
         }
-        // Se o caminho é ancestral de algo protegido, também é negado.
+        // A path that is an ancestor of something protected is also denied.
         for rel in ["Library/Keychains", ".ssh", ".gnupg"] where Self.isInside(homePath(rel), path) || Self.isInside(path, homePath(rel)) {
-            return .denied("Contém chaves ou credenciais.")
+            return .denied("Contains keys or credentials.")
         }
         if Self.isInside(path, homePath("Library/Mobile Documents")) {
-            return .denied("Documentos do iCloud Drive.")
+            return .denied("iCloud Drive documents.")
         }
-        if Self.isInside(path, homePath("Library/Application Support/PbWCodeEngine/Quarantine")) {
-            return .denied("Já está na quarentena.")
+        if Self.isInside(path, homePath("Library/Application Support/CleanSheet/Quarantine")) {
+            return .denied("Already in Quarantine.")
         }
         if path.contains(where: { Self.packageExtensions.contains(($0 as NSString).pathExtension.lowercased()) }) {
-            // Pacote de biblioteca/projeto: só é permitido apagar o pacote inteiro se o usuário o escolheu... e mesmo assim não.
-            return .denied("Biblioteca ou projeto do usuário.")
+            // Library/project packages are never touched, even if the user picked them.
+            return .denied("User library or project.")
         }
 
         if scope == .automatic {
             for rel in ["Documents", "Desktop", "Pictures", "Music", "Movies"] where Self.isInside(path, homePath(rel)) {
-                return .denied("Pasta pessoal protegida (\(rel)).")
+                return .denied("Protected personal folder (\(rel)).")
             }
         }
         return .allowed

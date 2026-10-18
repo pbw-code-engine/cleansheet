@@ -16,14 +16,14 @@ public enum QuarantineError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .denied(let why): return "Bloqueado pela proteção: \(why)"
-        case .restoreTargetExists(let p): return "Já existe um item em \(p)."
-        case .notFound: return "Item não encontrado na quarentena."
+        case .denied(let why): return "Blocked by safety rules: \(why)"
+        case .restoreTargetExists(let p): return "An item already exists at \(p)."
+        case .notFound: return "Item not found in Quarantine."
         }
     }
 }
 
-/// Cofre onde os itens ficam por 30 dias antes da exclusão definitiva.
+/// Vault where items stay for 30 days before permanent deletion.
 public final class Quarantine {
     public static let retentionDays = 30
 
@@ -34,7 +34,7 @@ public final class Quarantine {
 
     public init(root: URL? = nil, guardian: SafetyGuard = SafetyGuard()) {
         self.guardian = guardian
-        self.root = root ?? guardian.home.appendingPathComponent("Library/Application Support/PbWCodeEngine/Quarantine")
+        self.root = root ?? guardian.home.appendingPathComponent("Library/Application Support/CleanSheet/Quarantine")
         try? fm.createDirectory(at: self.root, withIntermediateDirectories: true)
     }
 
@@ -59,11 +59,11 @@ public final class Quarantine {
         let dir = root.appendingPathComponent(id.uuidString)
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let name = url.lastPathComponent
-        // Move o caminho original (sem seguir symlink): um symlink é movido como symlink.
+        // Moves the original path without following symlinks: a symlink moves as a symlink.
         try fm.moveItem(at: url, to: dir.appendingPathComponent(name))
         let entry = QuarantineEntry(id: id, originalPath: url.path, storedName: name, size: size, date: Date(), source: source)
         try save(entries() + [entry])
-        ActivityLog.shared.record("quarentena", "\(url.path) (\(size) bytes) — \(source)")
+        ActivityLog.shared.record("quarantined", "\(url.path) (\(size) bytes) — \(source)")
         return entry
     }
 
@@ -76,13 +76,13 @@ public final class Quarantine {
         try fm.moveItem(at: stored, to: target)
         try? fm.removeItem(at: root.appendingPathComponent(entry.id.uuidString))
         try save(entries().filter { $0.id != entry.id })
-        ActivityLog.shared.record("restaurado", entry.originalPath)
+        ActivityLog.shared.record("restored", entry.originalPath)
     }
 
     public func purge(_ entry: QuarantineEntry) throws {
         try? fm.removeItem(at: root.appendingPathComponent(entry.id.uuidString))
         try save(entries().filter { $0.id != entry.id })
-        ActivityLog.shared.record("excluído-definitivo", entry.originalPath)
+        ActivityLog.shared.record("deleted", entry.originalPath)
     }
 
     public func purgeExpired(now: Date = Date()) {

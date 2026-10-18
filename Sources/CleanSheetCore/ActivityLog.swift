@@ -1,6 +1,6 @@
 import Foundation
 
-/// Histórico local do que o app fez. Nunca sai do Mac.
+/// Local record of what the app did. Never leaves the Mac.
 public final class ActivityLog {
     public static let shared = ActivityLog()
 
@@ -15,7 +15,7 @@ public final class ActivityLog {
     private let lock = NSLock()
 
     init() {
-        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/PbWCodeEngine")
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/CleanSheet")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appendingPathComponent("activity.log")
     }

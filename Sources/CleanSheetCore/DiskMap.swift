@@ -8,7 +8,7 @@ public struct DiskNode: Identifiable, Hashable {
 }
 
 public enum DiskMap {
-    /// Filhos imediatos de uma pasta com seus tamanhos, do maior para o menor.
+    /// Immediate children of a folder with their sizes, largest first.
     public static func children(of folder: URL) -> [DiskNode] {
         let fm = FileManager.default
         guard let items = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey], options: []) else { return [] }

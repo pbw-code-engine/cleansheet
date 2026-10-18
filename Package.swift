@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "PbWCodeEngine",
+    name: "CleanSheet",
     platforms: [.macOS(.v13)],
     targets: [
-        .target(name: "CodeEngineCore"),
-        .executableTarget(name: "PbWCodeEngine", dependencies: ["CodeEngineCore"]),
-        .executableTarget(name: "CoreChecks", dependencies: ["CodeEngineCore"]),
+        .target(name: "CleanSheetCore"),
+        .executableTarget(name: "CleanSheet", dependencies: ["CleanSheetCore"]),
+        .executableTarget(name: "CoreChecks", dependencies: ["CleanSheetCore"]),
     ]
 )

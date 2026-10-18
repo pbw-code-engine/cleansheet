@@ -7,7 +7,7 @@ public struct DuplicateGroup: Identifiable, Hashable {
     public let size: Int64
     public let files: [URL]
     public init(hash: String, size: Int64, files: [URL]) { self.hash = hash; self.size = size; self.files = files }
-    /// Espaço recuperável mantendo uma cópia.
+    /// Space reclaimable while keeping one copy.
     public var reclaimable: Int64 { size * Int64(files.count - 1) }
 }
 
@@ -26,7 +26,7 @@ public enum Duplicates {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
-    /// Agrupa por tamanho, depois por hash dos primeiros 64 KB, depois por hash completo.
+    /// Groups by size, then by hash of the first 64 KB, then by full hash.
     public static func find(in folder: URL, minSize: Int64 = 1 << 20, progress: ((Int) -> Void)? = nil) -> [DuplicateGroup] {
         let fm = FileManager.default
         var bySize: [Int64: [URL]] = [:]

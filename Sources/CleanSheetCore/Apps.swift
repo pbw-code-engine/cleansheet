@@ -23,7 +23,7 @@ public enum Apps {
             for url in items where url.pathExtension == "app" {
                 let info = NSDictionary(contentsOf: url.appendingPathComponent("Contents/Info.plist"))
                 let bid = info?["CFBundleIdentifier"] as? String
-                // Apps da Apple nunca entram na lista de remoção.
+                // Apple apps are never offered for removal.
                 if bid?.hasPrefix("com.apple.") == true { continue }
                 out.append(InstalledApp(url: url, name: url.deletingPathExtension().lastPathComponent, bundleID: bid, size: DiskSize.of(url)))
             }
@@ -31,7 +31,7 @@ public enum Apps {
         return out.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    /// Procura arquivos do app em locais conhecidos, por correspondência EXATA do bundle ID.
+    /// Looks for app files in known locations, by EXACT bundle ID match.
     public static func leftovers(for app: InstalledApp, home: URL = SafetyGuard().home) -> [AppLeftover] {
         guard let bid = app.bundleID, !bid.isEmpty else { return [] }
         let lib = home.appendingPathComponent("Library")

@@ -1,7 +1,7 @@
 import Foundation
 
 public enum DiskSize {
-    /// Tamanho alocado em disco. Não segue symlinks de diretório.
+    /// Allocated size on disk. Does not follow directory symlinks.
     public static func of(_ url: URL) -> Int64 {
         let fm = FileManager.default
         let keys: [URLResourceKey] = [.totalFileAllocatedSizeKey, .isDirectoryKey, .isSymbolicLinkKey]
