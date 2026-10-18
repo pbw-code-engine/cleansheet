@@ -161,6 +161,7 @@ struct StartupView: View {
 // MARK: Quarantine
 struct QuarantineView: View {
     @EnvironmentObject var m: AppModel
+    @State private var confirmPurge = false
     var body: some View {
         VStack(spacing: 0) {
             if m.quarantined.isEmpty {
@@ -183,8 +184,15 @@ struct QuarantineView: View {
                     }
                 }
             }
-            ActionBar(summary: "Total: \(DiskSize.format(m.quarantined.reduce(0) { $0 + $1.size })). Items older than 30 days are deleted automatically.") { EmptyView() }
-        }.onAppear { m.refreshQuarantine() }
+            ActionBar(summary: "Total: \(DiskSize.format(m.quarantined.reduce(0) { $0 + $1.size })). Items older than 30 days are deleted automatically.") {
+                Button { confirmPurge = true } label: { Label("Empty Quarantine", systemImage: "trash.fill") }
+                    .buttonStyle(PrimaryButton()).disabled(m.quarantined.isEmpty)
+            }
+        }
+        .onAppear { m.refreshQuarantine() }
+        .confirmationDialog("Permanently delete \(m.quarantined.count) items (\(DiskSize.format(m.quarantined.reduce(0) { $0 + $1.size })))? This cannot be undone.", isPresented: $confirmPurge) {
+            Button("Delete permanently", role: .destructive) { m.purgeAll() }
+        }
     }
 }
 

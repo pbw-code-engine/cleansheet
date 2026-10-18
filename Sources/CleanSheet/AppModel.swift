@@ -176,6 +176,11 @@ final class AppModel: ObservableObject {
         do { try quarantine.restore(e); status = "Restored: \(e.originalPath)" } catch { status = error.localizedDescription }
         refreshQuarantine()
     }
+    func purgeAll() {
+        let freed = quarantine.purgeAll()
+        refreshQuarantine()
+        status = "Quarantine emptied. \(DiskSize.format(freed)) freed."
+    }
     func purge(_ e: QuarantineEntry) { try? quarantine.purge(e); refreshQuarantine(); status = "Permanently deleted." }
 
     // MARK: ⌘K

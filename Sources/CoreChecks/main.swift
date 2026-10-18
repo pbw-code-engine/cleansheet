@@ -62,6 +62,12 @@ let old = try { () -> QuarantineEntry in
 q.purgeExpired(now: old.date.addingTimeInterval(31 * 86_400))
 check("expires after 30 days", q.entries().isEmpty)
 
+// Empty Quarantine
+let pa = work.appendingPathComponent("p1.bin"); try Data(count: 500).write(to: pa)
+let pb = work.appendingPathComponent("p2.bin"); try Data(count: 700).write(to: pb)
+try q.add(pa, size: 500, scope: .automatic, source: "selfcheck"); try q.add(pb, size: 700, scope: .automatic, source: "selfcheck")
+check("purgeAll frees everything", q.purgeAll() == 1200 && q.entries().isEmpty && ((try? fm.contentsOfDirectory(atPath: qroot.path))?.filter { $0 != "manifest.json" }.isEmpty ?? false))
+
 // Symlink apontando para pasta protegida não pode ser movido
 let link = work.appendingPathComponent("link-ssh")
 try fm.createSymbolicLink(at: link, withDestinationURL: home.appendingPathComponent(".ssh"))

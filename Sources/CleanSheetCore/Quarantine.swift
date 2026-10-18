@@ -85,6 +85,14 @@ public final class Quarantine {
         ActivityLog.shared.record("deleted", entry.originalPath)
     }
 
+    /// Permanently deletes everything in Quarantine. Returns the bytes freed.
+    @discardableResult
+    public func purgeAll() -> Int64 {
+        let all = entries()
+        for e in all { try? purge(e) }
+        return all.reduce(0) { $0 + $1.size }
+    }
+
     public func purgeExpired(now: Date = Date()) {
         let limit = TimeInterval(Self.retentionDays * 86_400)
         for e in entries() where now.timeIntervalSince(e.date) > limit { try? purge(e) }
