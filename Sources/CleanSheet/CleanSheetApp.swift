@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct CleanSheetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
+    @StateObject private var memory = MemoryModel()
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -21,6 +22,7 @@ struct CleanSheetApp: App {
         WindowGroup("CleanSheet", id: "main") {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(memory)
                 .frame(minWidth: 980, minHeight: 620)
                 .preferredColorScheme(.dark)
         }
@@ -29,7 +31,7 @@ struct CleanSheetApp: App {
         .commands { AboutCommand() }
 
         MenuBarExtra("CleanSheet", systemImage: "sparkles") {
-            TrayMenu().environmentObject(model)
+            TrayMenu().environmentObject(model).environmentObject(memory)
         }
 
         Window("About CleanSheet", id: "about") {
@@ -74,11 +76,15 @@ struct AboutView: View {
 
 struct TrayMenu: View {
     @EnvironmentObject var m: AppModel
+    @EnvironmentObject var mem: MemoryModel
     @Environment(\.openWindow) private var openWindow
 
     private var quarantineBytes: Int64 { m.quarantined.reduce(0) { $0 + $1.size } }
 
     var body: some View {
+        Text("Memory: \(Int(mem.snapshot.fraction * 100))% used · \(mem.snapshot.pressure.label)")
+        Button("Free Memory (\(mem.level.rawValue))") { mem.freeNow() }.disabled(mem.targets.isEmpty || mem.closing)
+        Divider()
         Button("Open CleanSheet") { show() }
         Button("Scan Now") { show(); m.tab = .scan; m.scan() }
         Divider()

@@ -90,5 +90,36 @@ try Data(repeating: 1, count: 100_000).write(to: appCache.appendingPathComponent
 let found = Scanner(guardian: guardian, runningBundleIDs: ["com.pbw.selfcheck.running"]).scan()
 check("cache of an open app is flagged", found.first { $0.url.path == appCache.path }?.skipReason != nil)
 
+
+// Memory: levels and process table
+func app(_ id: String, mb: UInt64, windows: Bool = true, front: Bool = false, idle: TimeInterval = 0) -> AppCandidate {
+    AppCandidate(pid: Int32(abs(id.hashValue % 90000) + 100), bundleID: id, name: id, memoryBytes: mb << 20, hasVisibleWindows: windows, isFrontmost: front, idleSeconds: idle)
+}
+let apps = [
+    app("a.hidden", mb: 400, windows: false, idle: 900),
+    app("b.bg-old", mb: 500, windows: true, idle: 3600),
+    app("c.open", mb: 800, windows: true, idle: 20),
+    app("d.front", mb: 900, windows: true, front: true),
+    app("com.apple.finder", mb: 300, windows: false, idle: 9999),
+    app("com.apple.Terminal", mb: 300, windows: false, idle: 9999),
+    app("e.small", mb: 50, windows: false, idle: 9999),
+    app("f.never", mb: 700, windows: false, idle: 9999),
+]
+func ids(_ l: CloseLevel) -> Set<String> { Set(l.select(apps, neverClose: ["f.never"]).map(\.bundleID)) }
+check("low: only hidden idle big apps", ids(.low) == ["a.hidden"])
+check("medium adds old background apps", ids(.medium) == ["a.hidden", "b.bg-old"])
+check("high: everything not in front, 100MB+", ids(.high) == ["a.hidden", "b.bg-old", "c.open"])
+check("sweep includes the front app", ids(.sweep).contains("d.front") && ids(.sweep).contains("e.small"))
+check("Finder/Terminal/never-close are never picked", CloseLevel.allCases.allSatisfy { l in !ids(l).contains("com.apple.finder") && !ids(l).contains("com.apple.Terminal") && !ids(l).contains("f.never") })
+check("levels are nested (low ⊆ medium ⊆ high ⊆ sweep)", ids(.low).isSubset(of: ids(.medium)) && ids(.medium).isSubset(of: ids(.high)) && ids(.high).isSubset(of: ids(.sweep)))
+
+let rows = ProcessTable.parse("  1     0   1000\n 10     1   2000\n 11    10   4000\n 12    11    500\n 20     1   8000\n")
+let totals = ProcessTable.totals(for: [10, 20], in: rows)
+check("ps parsing", rows.count == 5 && rows[1].rssBytes == 2000 * 1024)
+check("sums app + helpers + grandchildren", totals[10] == (2000 + 4000 + 500) * 1024 && totals[20] == 8000 * 1024)
+let snap = MemoryMonitor.read()
+check("memory snapshot is sane", snap.total > 1 << 30 && snap.used > 0 && snap.used <= snap.total)
+print("      memory used: \(DiskSize.format(Int64(snap.used))) of \(DiskSize.format(Int64(snap.total))), pressure \(snap.pressure.label)")
+
 print(failures == 0 ? "\nAll good." : "\n\(failures) failure(s).")
 exit(failures == 0 ? 0 : 1)

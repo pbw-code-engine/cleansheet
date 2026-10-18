@@ -5,6 +5,7 @@ extension Tab {
     var symbol: String {
         switch self {
         case .scan: return "sparkles"
+        case .memory: return "memorychip"
         case .map: return "chart.pie.fill"
         case .duplicates: return "square.on.square"
         case .apps: return "square.grid.2x2.fill"
@@ -24,6 +25,7 @@ struct ContentView: View {
             Group {
                 switch m.tab {
                 case .scan: ScanView()
+                case .memory: MemoryView()
                 case .map: MapView()
                 case .duplicates: DuplicatesView()
                 case .apps: AppsView()

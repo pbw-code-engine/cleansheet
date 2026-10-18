@@ -3,7 +3,7 @@ import AppKit
 import CleanSheetCore
 
 enum Tab: String, CaseIterable, Identifiable {
-    case scan = "Scan", map = "Disk Map", duplicates = "Duplicates", apps = "Apps"
+    case scan = "Scan", memory = "Memory", map = "Disk Map", duplicates = "Duplicates", apps = "Apps"
     case startup = "Startup", quarantine = "Quarantine", report = "Activity"
     var id: String { rawValue }
 }
@@ -44,6 +44,8 @@ final class AppModel: ObservableObject {
 
     init() {
         quarantine.purgeExpired()
+        // Developer aid: `CleanSheet --tab=Memory` opens straight on that tab.
+        if let arg = CommandLine.arguments.first(where: { $0.hasPrefix("--tab=") }), let t = Tab(rawValue: String(arg.dropFirst(6))) { tab = t }
         refreshQuarantine()
     }
 
