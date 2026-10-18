@@ -176,6 +176,20 @@ final class AppModel: ObservableObject {
         do { try quarantine.restore(e); status = "Restored: \(e.originalPath)" } catch { status = error.localizedDescription }
         refreshQuarantine()
     }
+    /// Used by the menu bar item, where a SwiftUI dialog is not available.
+    func confirmAndPurgeAll() {
+        refreshQuarantine()
+        guard !quarantined.isEmpty else { return }
+        let alert = NSAlert()
+        alert.messageText = "Permanently delete \(quarantined.count) items?"
+        alert.informativeText = "\(DiskSize.format(quarantined.reduce(0) { $0 + $1.size })) will be freed. This cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete permanently")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn { purgeAll() }
+    }
+
     func purgeAll() {
         let freed = quarantine.purgeAll()
         refreshQuarantine()

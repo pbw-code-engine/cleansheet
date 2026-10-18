@@ -1,8 +1,15 @@
 import SwiftUI
 import AppKit
+import CleanSheetCore
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Closing the window keeps CleanSheet alive in the menu bar.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+}
 
 @main
 struct CleanSheetApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
 
     init() {
@@ -11,7 +18,7 @@ struct CleanSheetApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("CleanSheet") {
+        WindowGroup("CleanSheet", id: "main") {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 980, minHeight: 620)
@@ -20,6 +27,10 @@ struct CleanSheetApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
         .commands { AboutCommand() }
+
+        MenuBarExtra("CleanSheet", systemImage: "sparkles") {
+            TrayMenu().environmentObject(model)
+        }
 
         Window("About CleanSheet", id: "about") {
             AboutView().preferredColorScheme(.dark)
@@ -58,5 +69,29 @@ struct AboutView: View {
         }
         .padding(32).frame(width: 420)
         .background(Theme.background).foregroundColor(Theme.text)
+    }
+}
+
+struct TrayMenu: View {
+    @EnvironmentObject var m: AppModel
+    @Environment(\.openWindow) private var openWindow
+
+    private var quarantineBytes: Int64 { m.quarantined.reduce(0) { $0 + $1.size } }
+
+    var body: some View {
+        Button("Open CleanSheet") { show() }
+        Button("Scan Now") { show(); m.tab = .scan; m.scan() }
+        Divider()
+        Text(m.quarantined.isEmpty ? "Quarantine is empty" : "Quarantine: \(m.quarantined.count) items · \(DiskSize.format(quarantineBytes))")
+        Button("Empty Quarantine…") { m.confirmAndPurgeAll() }.disabled(m.quarantined.isEmpty)
+        Divider()
+        Button("About CleanSheet") { openWindow(id: "about"); NSApp.activate(ignoringOtherApps: true) }
+        Button("Quit CleanSheet") { NSApp.terminate(nil) }.keyboardShortcut("q")
+    }
+
+    private func show() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let w = NSApp.windows.first(where: { $0.title == "CleanSheet" }) { w.makeKeyAndOrderFront(nil) }
+        else { openWindow(id: "main") }
     }
 }
