@@ -7,7 +7,7 @@ final class MemoryModel: ObservableObject {
     @Published var snapshot = MemoryMonitor.read()
     @Published var apps: [AppCandidate] = []
     @Published var level: CloseLevel { didSet { defaults.set(level.rawValue, forKey: "memory.level") } }
-    @Published var autoEnabled: Bool { didSet { defaults.set(autoEnabled, forKey: "memory.auto") } }
+    @Published var autoEnabled: Bool { didSet { defaults.set(autoEnabled, forKey: "memory.auto"); if autoEnabled { Notifier.requestIfNeeded() } } }
     @Published var threshold: Double { didSet { defaults.set(threshold, forKey: "memory.threshold") } }
     @Published var neverClose: Set<String> { didSet { defaults.set(Array(neverClose), forKey: "memory.never") } }
     @Published var lastResult = ""
@@ -30,7 +30,17 @@ final class MemoryModel: ObservableObject {
             Task { @MainActor in self?.lastActive[app.processIdentifier] = Date() }
         }
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in self?.refresh() } }
+        schedule(every: 5)
+        // Window closed → poll every 20 s instead of 5 s: the same job at a fraction of the CPU.
+        BackgroundManager.shared.visibilityHandlers.append { [weak self] visible in self?.schedule(every: visible ? 5 : 20) }
+    }
+
+    private func schedule(every seconds: TimeInterval) {
+        timer?.invalidate()
+        let t = Timer(timeInterval: seconds, repeats: true) { [weak self] _ in Task { @MainActor in self?.refresh() } }
+        t.tolerance = seconds * 0.2
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     /// What the selected level would close right now.
@@ -102,6 +112,7 @@ final class MemoryModel: ObservableObject {
             self.lastResult = "Closed \(asked.count - stuck.count) of \(asked.count) apps, ~\(DiskSize.format(max(0, freed))) freed." +
                 (stuck.isEmpty ? "" : " \(stuck.count) still open (probably asking to save): \(stuck.compactMap(\.localizedName).joined(separator: ", ")).")
             self.closing = false
+            if reason.hasPrefix("auto"), !BackgroundManager.shared.windowVisible { Notifier.post("CleanSheet freed memory", self.lastResult) }
         }
     }
 

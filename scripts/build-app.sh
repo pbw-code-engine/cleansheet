@@ -17,11 +17,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundleExecutable</key><string>CleanSheet</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>NSSupportsAutomaticTermination</key><false/>
+<key>NSSupportsSuddenTermination</key><false/>
 <key>NSDesktopFolderUsageDescription</key><string>To measure disk usage and find duplicates in folders you choose.</string>
 <key>NSDocumentsFolderUsageDescription</key><string>To measure disk usage and find duplicates in folders you choose.</string>
 <key>NSDownloadsFolderUsageDescription</key><string>To list old .dmg installers.</string>

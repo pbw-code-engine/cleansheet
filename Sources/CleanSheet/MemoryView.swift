@@ -50,7 +50,7 @@ struct MemoryView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("\(DiskSize.format(Int64(mem.snapshot.used))) of \(DiskSize.format(Int64(mem.snapshot.total)))").font(.system(size: 18, weight: .bold, design: .rounded))
                 HStack(spacing: 6) { Circle().fill(pressureColor).frame(width: 8, height: 8); Text("Memory pressure: \(mem.snapshot.pressure.label)").font(.system(size: 13)) }
-                Text("Updates every 5 seconds.").font(.system(size: 11)).foregroundColor(Theme.dim)
+                Text("Updates every 5 seconds (every 20 while CleanSheet runs in the background).").font(.system(size: 11)).foregroundColor(Theme.dim)
             }
             Spacer()
         }.padding(18).card()
@@ -102,6 +102,8 @@ struct MemoryView: View {
         if mem.autoEnabled && (mem.level == .high || mem.level == .sweep) {
             Label("\(mem.level.rawValue) is aggressive for automatic mode.", systemImage: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(Theme.danger)
         }
+        Divider().overlay(Theme.cardStroke)
+        BackgroundPanel()
         Divider().overlay(Theme.cardStroke)
         Text("Never closed").font(.system(size: 12, weight: .semibold)).foregroundColor(Theme.dim)
         Text("Finder, Dock, Terminal apps, Spotify, Music and CleanSheet are always protected.").font(.system(size: 11)).foregroundColor(Theme.dim)

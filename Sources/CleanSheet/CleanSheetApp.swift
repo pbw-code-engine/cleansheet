@@ -5,6 +5,20 @@ import CleanSheetCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Closing the window keeps CleanSheet alive in the menu bar.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        let bg = BackgroundManager.shared
+        bg.start()
+        if bg.launchedHidden { bg.hideAtLaunch() }
+        else { NSApp.setActivationPolicy(.regular); NSApp.activate(ignoringOtherApps: true) }
+    }
+
+    /// Clicking the app in Finder / Spotlight while it runs in the background brings the window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        BackgroundManager.shared.enterForeground()
+        if !flag { _ = NSApp.sendAction(#selector(NSResponder.newWindowForTab(_:)), to: nil, from: nil) }
+        return true
+    }
 }
 
 @main
@@ -12,11 +26,6 @@ struct CleanSheetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
     @StateObject private var memory = MemoryModel()
-
-    init() {
-        NSApplication.shared.setActivationPolicy(.regular)
-        NSApplication.shared.activate(ignoringOtherApps: true)
-    }
 
     var body: some Scene {
         WindowGroup("CleanSheet", id: "main") {
@@ -30,8 +39,10 @@ struct CleanSheetApp: App {
         .defaultSize(width: 1100, height: 720)
         .commands { AboutCommand() }
 
-        MenuBarExtra("CleanSheet", systemImage: "sparkles") {
+        MenuBarExtra {
             TrayMenu().environmentObject(model).environmentObject(memory)
+        } label: {
+            MenuBarLabel(mem: memory)
         }
 
         Window("About CleanSheet", id: "about") {
@@ -77,6 +88,7 @@ struct AboutView: View {
 struct TrayMenu: View {
     @EnvironmentObject var m: AppModel
     @EnvironmentObject var mem: MemoryModel
+    @ObservedObject private var bg = BackgroundManager.shared
     @Environment(\.openWindow) private var openWindow
 
     private var quarantineBytes: Int64 { m.quarantined.reduce(0) { $0 + $1.size } }
@@ -88,6 +100,9 @@ struct TrayMenu: View {
         Button("Open CleanSheet") { show() }
         Button("Scan Now") { show(); m.tab = .scan; m.scan() }
         Divider()
+        Toggle("Start at login", isOn: Binding(get: { bg.launchAtLogin }, set: { bg.setLaunchAtLogin($0) }))
+        Toggle("Hide Dock icon when window is closed", isOn: $bg.hideDock)
+        Divider()
         Text(m.quarantined.isEmpty ? "Quarantine is empty" : "Quarantine: \(m.quarantined.count) items · \(DiskSize.format(quarantineBytes))")
         Button("Empty Quarantine…") { m.confirmAndPurgeAll() }.disabled(m.quarantined.isEmpty)
         Divider()
@@ -96,7 +111,7 @@ struct TrayMenu: View {
     }
 
     private func show() {
-        NSApp.activate(ignoringOtherApps: true)
+        BackgroundManager.shared.enterForeground()
         if let w = NSApp.windows.first(where: { $0.title == "CleanSheet" }) { w.makeKeyAndOrderFront(nil) }
         else { openWindow(id: "main") }
     }

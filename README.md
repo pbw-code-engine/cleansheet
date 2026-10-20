@@ -13,6 +13,13 @@ Developed by **PbW Code Engine**.
 - **Quarantine**: nothing is deleted directly; everything is kept 30 days and can be restored.
 - **Activity**: local log of everything the app did.
 
+## Runs in the background (v0.2)
+- Closing the window doesn't quit the app: it keeps watching memory from the menu bar (icon + live memory %).
+- With no window open the Dock icon is hidden; click the app in Finder/Spotlight, or "Open CleanSheet" in the menu bar, to bring the window back.
+- "Start at login" (Memory tab or menu bar) starts it hidden, menu bar only. Works best from /Applications.
+- While hidden it polls memory every 20 s instead of 5 s, and shows a notification after an automatic clean-up.
+- Launch hidden manually with `open -a CleanSheet --args --background`.
+
 ## Safety
 Every action goes through `SafetyGuard` (`Sources/CleanSheetCore/SafetyGuard.swift`). System folders, your home folder, keys, iCloud Drive, Photos/Music libraries and symlinks into protected areas are always blocked.
 
